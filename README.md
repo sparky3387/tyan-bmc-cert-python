@@ -1,6 +1,6 @@
-# tyan-bmc-cert
+# tyan-bmc-cert-python
 
-This is a quick-and-dirty command line utility for uploading certs to an AST2500 BMC/IPMI.
+This is another quick-and-dirty command line utility for uploading certs to an AST2500 BMC/IPMI (Python version of mwstowes script).
 
 While the Baseboard Management Controller supports somebody logging in and uploading a cert interactively, this is less than ideal for automation, especially when using [Let's Encrypt certificates](https://letsencrypt.org/), which generally get updated every 60 days or so.
 
@@ -8,7 +8,7 @@ It's pretty straightforward to use:
 
 USAGE:
 
-    tyan-bmc <BMC> <USERNAME> <PASSWORD> <FILENAME> <KEYFILE>`
+    tyan-bmc-python <BMC> <USERNAME> <PASSWORD> <FILENAME> <KEYFILE>`
 
 
 ARGS:
