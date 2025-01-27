@@ -1,87 +1,114 @@
-import argparse
+#!/opt/certbot/bin/python
+import os
 import requests
 import json
 from pathlib import Path
 
+def load_config(config_path):
+    """
+    Load all arguments from the specified configuration file.
+    """
+    try:
+        if os.path.isfile(config_path):
+            with open(config_path, "r") as config_file:
+                return json.load(config_file)
+        else:
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            with open(os.path.join(script_dir, config_path), "r") as config_file:
+                return json.load(config_file)
+
+    except FileNotFoundError:
+        print(f"Config file not found: {config_path}")
+        return None
+    except json.JSONDecodeError:
+        print(f"Error decoding JSON from the config file: {config_path}")
+        return None
+
 def main():
+    import argparse
     parser = argparse.ArgumentParser(
         description="Command-line tool to install a cert and key in Tyan's BMC"
     )
-    parser.add_argument("bmc", help="FQDN or address of BMC")
-    parser.add_argument("username", help="BMC username with sufficient rights to update cert")
-    parser.add_argument("password", help="Password of user with sufficient rights to update cert")
-    parser.add_argument("filename", help="Filename of cert file in PEM format")
-    parser.add_argument("keyfile", help="Filename of key file in PEM format")
-    
+    parser.add_argument(
+        "--config",
+        help="Path to the configuration file containing BMC details and credentials",
+        default="config.json"
+    )
     args = parser.parse_args()
 
-    bmc = args.bmc
-    print(f"Calling {bmc}...")
-
-    session = requests.Session()
-    session.verify = False  # Disable certificate verification (dangerous, avoid in production)
-
-    auth_url = f"https://{bmc}/api/session"
-    auth_data = {
-        "username": args.username,
-        "password": args.password
-    }
-
-    auth_headers = {
-        "Connection": "keep-alive",
-        "Accept": "application/json, text/javascript, */*; q=0.01",
-        "Host": bmc,
-        "Origin": f"https://{bmc}",
-        "Referer": f"https://{bmc}",
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
-    }
-
-    # Authenticate and get CSRF token
-    response = session.post(auth_url, data=auth_data, headers=auth_headers)
-    if response.status_code != 200:
-        print(f"Not authenticated: {response.status_code}")
-        return
-    
-    csrf_token = response.json().get("CSRFToken")
-    if not csrf_token:
-        print("Failed to retrieve CSRF token")
+    # Load configuration from the file
+    config = load_config(args.config)
+    if config is None:
+        print("Invalid or missing configuration file. Please check the path and format.")
         return
 
-    # Prepare certificate and key files
-    with open(args.filename, "r") as cert_file:
-        cert_data = cert_file.read()
-    with open(args.keyfile, "r") as key_file:
-        key_data = key_file.read()
+    # Extract required arguments from the config
+    bmc = config.get("bmc")
+    username = config.get("username")
+    password = config.get("password")
+    cert_file = config.get("cert_file")
+    key_file = config.get("key_file")
 
-    cert_name = Path(args.filename).name
-    key_name = Path(args.keyfile).name
-
-    files = {
-        "new_certificate": (cert_name, cert_data, "application/octet-stream"),
-        "new_private_key": (key_name, key_data, "application/octet-stream")
-    }
-
-    post_url = f"https://{bmc}/api/settings/ssl/certificate"
-    update_headers = {
-        "X-CSRFTOKEN": csrf_token,
-        "X-Requested-With": "XMLHttpRequest",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Host": bmc,
-        "Origin": f"https://{bmc}",
-        "Referer": f"https://{bmc}"
-    }
-
-    response = session.post(post_url, files=files, headers=update_headers)
-    if response.status_code != 200:
-        print(f"Failed to update certificate: {response.status_code}")
+    # Validate configuration fields
+    if not all([bmc, username, password, cert_file, key_file]):
+        print("Configuration file is missing required fields (bmc, username, password, cert_file, key_file).")
         return
 
-    response_data = response.json()
-    if response_data.get("cc") == "0":
-        print("Success")
-    else:
-        print("Unknown failure")
+    # Check if cert and key files exist
+    try:
+        cert_file_name = Path(cert_file).name
+        key_file_name = Path(cert_file).name
+        cert_file_pointer = open(cert_file, "rb")
+        key_file_pointer = open(key_file, "rb")
+    except FileNotFoundError:
+        print(f"Certificate or key file not found")
+        return 
+
+    print(f"Connecting to BMC at {bmc}...")
+
+    try:
+        session = requests.Session()
+        session.verify = False  # WARNING: Skip verification (not secure)
+        session.trust_env = False
+
+        auth_url = f"https://{bmc}/api/session"
+        auth_data = {
+            "username": username,
+            "password": password
+        }
+
+        # First request to get the CSRF token and cookies
+        response = session.post(auth_url, data=auth_data)
+        response.raise_for_status()
+
+        csrf_token = response.json().get("CSRFToken")
+        if not csrf_token:
+            print("Failed to retrieve CSRF token")
+            return
+
+        files = {
+        "new_certificate": (cert_file_name, cert_file_pointer, "application/octet-stream"),
+	    "new_private_key": (key_file_name, key_file_pointer, "application/octet-stream"),
+        }
+
+        post_url = f"https://{bmc}/api/settings/ssl/certificate"
+        update_headers = {
+            "X-CSRFTOKEN": csrf_token,
+        }
+
+        # Send the prepared request
+        response = session.post(post_url, files=files, headers=update_headers)
+        response.raise_for_status()
+
+        response_data = response.json()
+        print(response_data)
+        if response_data.get("cc") == 0:
+            print("Certificate installation successful")
+        else:
+            print("Installation failed with unknown error")
+
+    except requests.exceptions.RequestException as e:
+        print(f"An error occurred: {e}")
 
 if __name__ == "__main__":
     main()
