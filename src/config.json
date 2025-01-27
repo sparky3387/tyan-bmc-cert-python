@@ -1,0 +1,7 @@
+{
+    "bmc": "hostnameofyouripmiserver",
+    "username": "username",
+    "password": "password",
+    "cert_file": "/etc/letsencrypt/live/npm-2/fullchain.pem",
+    "key_file": "/etc/letsencrypt/live/npm-2/privkey.pem"
+}
