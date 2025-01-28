@@ -8,20 +8,12 @@ It's pretty straightforward to use:
 
 USAGE:
 
-    tyan-bmc-python <BMC> <USERNAME> <PASSWORD> <FILENAME> <KEYFILE>`
+    tyan-bmc-python --config <FILE>`
 
 
 ARGS:
 
-    <BMC>         FQDN or address of BMC
-
-    <USERNAME>    BMC username with sufficient rights to update cert
-    
-    <PASSWORD>    password of user with sufficient rights to update cert
-    
-    <FILENAME>    Filename of cert file in pem format
-    
-    <KEYFILE>     Filename of key file in pem format
+    --config <FILE>  Filename of key file in pem format
 
 OPTIONS:
     
@@ -31,9 +23,12 @@ OPTIONS:
 
 ### Notes
 
-It requires all five parameters.
+It requires no parameters. It will try to load the config.json from the script directory
 
 It doesn't validate certs, so it should work even if a cert has expired.  On the other hand, it does not have a lot of error checking, so expect pretty messy output if something goes wrong.  It understands when the cert is properly updated; if anything else goes wrong, it'll pretty much
 just throw up its hands.
 
-Yes, it currently expects the password right on the command line.  This isn't particularly hard to fix, but I haven't yet bothered.
+From testing it appears the TYAN BMC at least on my (S8050) version is not sending the intermediate certificate from the fullchain.pem, this means clients (other than web browsers) require a certificate chain file composed of the ISRG root X1 and what ever intermediate certificate you are using, ill log a case with Mitac/TYAN to see if it can be resolved. Also to note, that the redfish CertificateService.ReplaceCertificate interface only accepts RSA keys up to a maximum of 2048 key length before it will reject, hence why using the web interface. It appears to be a vendor specific limitation not anything to do with redfish.
+
+
+
