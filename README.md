@@ -8,7 +8,7 @@ It's pretty straightforward to use:
 
 USAGE:
 
-    tyan-bmc-python --config <FILE>`
+    tyan-bmc-python --config <FILE>
 
 
 ARGS:
@@ -28,7 +28,7 @@ It requires no parameters. It will try to load the config.json from the script d
 It doesn't validate certs, so it should work even if a cert has expired.  On the other hand, it does not have a lot of error checking, so expect pretty messy output if something goes wrong.  It understands when the cert is properly updated; if anything else goes wrong, it'll pretty much
 just throw up its hands.
 
-From testing it appears the TYAN BMC at least on my (S8050) version is not sending the intermediate certificate from the fullchain.pem, this means clients (other than web browsers) require a certificate chain file composed of the ISRG root X1 and what ever intermediate certificate you are using, ill log a case with Mitac/TYAN to see if it can be resolved. Also to note, that the redfish CertificateService.ReplaceCertificate interface only accepts RSA keys up to a maximum of 2048 key length before it will reject, hence why using the web interface. It appears to be a vendor specific limitation not anything to do with redfish.
+From testing it appears the TYAN BMC at least on my (S8050) version is not sending the intermediate certificate from the fullchain.pem, this means clients (other than web browsers on Windows it appears) require a certificate chain file composed of the ISRG root X1 and what ever intermediate certificate you are using, ill log a case with Mitac/TYAN to see if it can be resolved. Also to note, that the redfish CertificateService.ReplaceCertificate interface only accepts RSA keys up to a maximum of 2048 key length before it will reject, hence why using the web interface. It appears to be a vendor specific limitation not anything to do with redfish.
 
 
 
