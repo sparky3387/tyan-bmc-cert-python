@@ -4,4 +4,6 @@
     "password": "password",
     "cert_file": "/etc/letsencrypt/live/npm-2/fullchain.pem",
     "key_file": "/etc/letsencrypt/live/npm-2/privkey.pem"
+    "insecure_startup": true,
+    "aia_db": "/tmp/sslcache.db"    
 }
